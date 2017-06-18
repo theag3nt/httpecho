@@ -8,6 +8,7 @@ import (
 	"net/http/httputil"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func printUsage() {
@@ -24,7 +25,13 @@ func validateArgs(args []string) (string, []string, error) {
 	ports := args[1:]
 
 	// Validate IP address
-	if parsedIP := net.ParseIP(ip); parsedIP == nil {
+	if parsedIP := net.ParseIP(strings.TrimSpace(ip)); parsedIP != nil {
+		ip = parsedIP.String()
+		// Enclose IPv6 addresses in brackets
+		if parsedIP.To4() == nil {
+			ip = fmt.Sprintf("[%s]", ip)
+		}
+	} else {
 		// IP is invalid, maybe it's a port number
 		if _, err := strconv.ParseUint(ip, 10, 16); err != nil {
 			return "", nil, fmt.Errorf("ip address %#v is invalid", ip)
@@ -37,7 +44,7 @@ func validateArgs(args []string) (string, []string, error) {
 
 	// Validate port numbers
 	for _, port := range ports {
-		if _, err := strconv.ParseUint(port, 10, 16); err != nil {
+		if _, err := strconv.ParseUint(strings.TrimSpace(port), 10, 16); err != nil {
 			return "", nil, fmt.Errorf("port number %#v is invalid", port)
 		}
 	}
