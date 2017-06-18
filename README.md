@@ -2,6 +2,7 @@
 
 `httpecho` is a simple tool which echoes incoming HTTP requests back to its clients.
 
+[![Build Status](https://travis-ci.org/theag3nt/httpecho.svg?branch=master)](https://travis-ci.org/theag3nt/httpecho)
 [![Go Report Card](https://goreportcard.com/badge/github.com/theag3nt/httpecho)](https://goreportcard.com/report/github.com/theag3nt/httpecho)
 
 It is useful for testing and debugging HTTP clients and reverse proxies, showing the exact request which arrives to the endpoint. It is inspired by [httpbin](https://github.com/kennethreitz/httpbin) but it is much simpler, and it was created with the intention to be easily runnable on multiple ports at the same time.
@@ -52,7 +53,7 @@ While `httpecho` was running, we have sent two requests using `curl`:
     Host: localhost:8080
     Accept: */*
     User-Agent: curl/7.47.0
-    
+
     $ curl -X POST -d hello=world -d http=echo localhost:8081
     POST / HTTP/1.1
     Host: localhost:8081
@@ -60,5 +61,5 @@ While `httpecho` was running, we have sent two requests using `curl`:
     Content-Length: 21
     Content-Type: application/x-www-form-urlencoded
     User-Agent: curl/7.47.0
-    
+
     hello=world&http=echo
