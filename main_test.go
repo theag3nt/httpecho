@@ -1,10 +1,43 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 )
+
+type bufferLogger struct {
+	mu sync.Mutex
+	b  bytes.Buffer
+}
+
+func (l *bufferLogger) Print(args ...interface{}) {
+	l.mu.Lock()
+	fmt.Fprint(&l.b, args...)
+	l.mu.Unlock()
+}
+
+func (l *bufferLogger) Printf(format string, args ...interface{}) {
+	l.mu.Lock()
+	fmt.Fprintf(&l.b, format, args...)
+	l.mu.Unlock()
+}
+
+func (l *bufferLogger) Println(args ...interface{}) {
+	l.mu.Lock()
+	fmt.Fprintln(&l.b, args...)
+	l.mu.Unlock()
+}
+
+func (l *bufferLogger) String() string {
+	return l.b.String()
+}
 
 func TestValidateArgs(t *testing.T) {
 	tests := []struct {
@@ -34,6 +67,7 @@ func TestValidateArgs(t *testing.T) {
 		{"Negative/InvalidPortRange", "127.0.0.1,99999", "", "", true},
 		{"Negative/InvalidPortName", "127.0.0.1,http", "", "", true},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Prepare arguments and expected results
@@ -64,6 +98,115 @@ func TestValidateArgs(t *testing.T) {
 			// Check validated port list
 			if !reflect.DeepEqual(ports, wantPorts) {
 				t.Errorf("invalid ports: got %v, want %v", ports, wantPorts)
+			}
+		})
+	}
+}
+
+func TestDumpHandlerGetWithHeaders(t *testing.T) {
+	// Prepare expected results
+	wantStatus := http.StatusOK
+	wantBody := "GET / HTTP/1.1\r\nHost: 127.0.0.1:1234\r\nAccept: */*\r\n\r\n"
+
+	// Prepare request
+	req, err := http.NewRequest("GET", "/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Host = "127.0.0.1:1234"
+	req.Header.Set("Accept", "*/*")
+
+	// Send request to handler
+	rr := httptest.NewRecorder()
+	handler := dumpHandler(nil)
+	handler.ServeHTTP(rr, req)
+
+	// Check response status
+	if status := rr.Code; status != wantStatus {
+		t.Errorf("invalid status code: got %v, want %v", status, wantStatus)
+	}
+	// Check response body
+	if body := rr.Body.String(); body != wantBody {
+		t.Errorf("invalid body:\ngot  %q\nwant %q", body, wantBody)
+	}
+}
+
+func TestDumpHandlerPostWithBody(t *testing.T) {
+	// Prepare expected results
+	wantStatus := http.StatusOK
+	wantBody := "POST /form HTTP/1.1\r\n\r\nhello=world&http=echo"
+
+	// Prepare request
+	data := url.Values{}
+	data.Add("hello", "world")
+	data.Add("http", "echo")
+	req, err := http.NewRequest("POST", "/form", bytes.NewBufferString(data.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Send request to handler
+	rr := httptest.NewRecorder()
+	handler := dumpHandler(nil)
+	handler.ServeHTTP(rr, req)
+
+	// Check response status
+	if status := rr.Code; status != wantStatus {
+		t.Errorf("invalid status code: got %v, want %v", status, wantStatus)
+	}
+	// Check response body
+	if body := rr.Body.String(); body != wantBody {
+		t.Errorf("invalid body:\ngot  %q\nwant %q", body, wantBody)
+	}
+}
+
+func TestLogHandler(t *testing.T) {
+	tests := []struct {
+		name   string
+		method string
+		remote string
+		local  string
+	}{
+		{"Get", "GET", "127.0.0.1", "127.0.0.1:1234"},
+		{"Post", "POST", "192.168.0.2", "192.168.0.1:1234"},
+		{"Head", "HEAD", "127.0.0.1", "localhost:1234"},
+	}
+
+	// Prepare expected results
+	wantStatus := http.StatusTeapot
+	wantBody := "tea time!"
+	wrappedHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, wantBody, wantStatus)
+	})
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wantOutput := fmt.Sprintf("%s request from %s on %s\n", tt.method, tt.remote, tt.local)
+
+			// Prepare request
+			req, err := http.NewRequest(tt.method, "/", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			req.Host = tt.local
+			req.RemoteAddr = tt.remote
+
+			// Send request to handler
+			rr := httptest.NewRecorder()
+			log := &bufferLogger{}
+			handler := logHandler(log, wrappedHandler)
+			handler.ServeHTTP(rr, req)
+
+			// Check handler wrapping
+			if status := rr.Code; status != wantStatus {
+				t.Errorf("invalid status code: got %v, want %v", status, wantStatus)
+			}
+			if body := strings.TrimRight(rr.Body.String(), "\n"); body != wantBody {
+				t.Errorf("invalid body:\ngot  %q\nwant %q", body, wantBody)
+			}
+			// Check logged message
+			if output := log.String(); output != wantOutput {
+				t.Errorf("invalid log message:\ngot  %q\nwant %q", output, wantOutput)
 			}
 		})
 	}
