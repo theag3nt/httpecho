@@ -34,7 +34,7 @@ func validateArgs(args []string) (string, []string, error) {
 	} else {
 		// IP is invalid, maybe it's a port number
 		if _, err := strconv.ParseUint(ip, 10, 16); err != nil {
-			return "", nil, fmt.Errorf("ip address %#v is invalid", ip)
+			return "", nil, fmt.Errorf("ip address %q is invalid", ip)
 		}
 
 		// Listen on all interfaces if IP is unspecified
@@ -45,7 +45,7 @@ func validateArgs(args []string) (string, []string, error) {
 	// Validate port numbers
 	for _, port := range ports {
 		if _, err := strconv.ParseUint(strings.TrimSpace(port), 10, 16); err != nil {
-			return "", nil, fmt.Errorf("port number %#v is invalid", port)
+			return "", nil, fmt.Errorf("port number %q is invalid", port)
 		}
 	}
 

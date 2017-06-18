@@ -48,14 +48,18 @@ func TestValidateArgs(t *testing.T) {
 			gotIP, gotPorts, err := validateArgs(args)
 
 			if (err != nil) != tt.wantErr {
-				t.Errorf("validateArgs() error = %v, wantErr %v", err, tt.wantErr)
+				expectErr := "expected"
+				if !tt.wantErr {
+					expectErr = "unexpected"
+				}
+				t.Errorf("error is %s, got error: %v", expectErr, err)
 				return
 			}
 			if gotIP != tt.wantIP {
-				t.Errorf("validateArgs() got IP = %v, want %v", gotIP, tt.wantIP)
+				t.Errorf("invalid IP: got %q, want %q", gotIP, tt.wantIP)
 			}
 			if !reflect.DeepEqual(gotPorts, wantPorts) {
-				t.Errorf("validateArgs() got ports = %v, want %v", gotPorts, wantPorts)
+				t.Errorf("invalid ports: got %v, want %v", gotPorts, wantPorts)
 			}
 		})
 	}
