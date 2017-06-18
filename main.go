@@ -10,9 +10,18 @@ import (
 	"strconv"
 )
 
+func printUsage() {
+	fmt.Println("usage: httpecho [ip] <port> [port]...")
+	os.Exit(1)
+}
+
 func validateArgs(args []string) (string, []string, error) {
-	ip := args[1]
-	ports := args[2:]
+	if len(args) == 0 {
+		return "", nil, fmt.Errorf("not enough arguments")
+	}
+
+	ip := args[0]
+	ports := args[1:]
 
 	// Validate IP address
 	if parsedIP := net.ParseIP(ip); parsedIP == nil {
@@ -23,7 +32,7 @@ func validateArgs(args []string) (string, []string, error) {
 
 		// Listen on all interfaces if IP is unspecified
 		ip = "0.0.0.0"
-		ports = args[1:]
+		ports = args[0:]
 	}
 
 	// Validate port numbers
@@ -64,12 +73,11 @@ func logHandler(h http.Handler) http.Handler {
 }
 
 func main() {
-	if len(os.Args) < 3 {
-		fmt.Println("usage: httpecho [ip] <port> [port]...")
-		os.Exit(1)
+	if len(os.Args) < 2 {
+		printUsage()
 	}
 
-	ip, ports, err := validateArgs(os.Args)
+	ip, ports, err := validateArgs(os.Args[1:])
 	if err != nil {
 		log.Fatalf("Error while validating arguments: %v", err)
 	}

@@ -5,7 +5,7 @@ go:
   - tip
 matrix:
   allow_failures:
-  - go: tip
+    - go: tip
   fast_finish: true
 before_deploy:
   - go get github.com/mitchellh/gox
