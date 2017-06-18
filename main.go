@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	stdlog "log"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -52,19 +52,27 @@ func validateArgs(args []string) (string, []string, error) {
 	return ip, ports, nil
 }
 
-func dumpHandler(w http.ResponseWriter, r *http.Request) {
-	dump, err := httputil.DumpRequest(r, true)
-	if err != nil {
-		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-		return
-	}
-
-	if _, err := w.Write(dump); err != nil {
-		log.Printf("Unable to write response: %v", err)
-	}
+type logger interface {
+	Print(args ...interface{})
+	Printf(format string, args ...interface{})
+	Println(args ...interface{})
 }
 
-func logHandler(h http.Handler) http.Handler {
+func dumpHandler(log logger) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		dump, err := httputil.DumpRequest(r, true)
+		if err != nil {
+			http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+			return
+		}
+
+		if _, err := w.Write(dump); err != nil {
+			log.Printf("Unable to write response: %v", err)
+		}
+	})
+}
+
+func logHandler(log logger, h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		method := r.Method
 		remote, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -84,6 +92,8 @@ func main() {
 		printUsage()
 	}
 
+	log := stdlog.New(os.Stderr, "", stdlog.LstdFlags)
+
 	ip, ports, err := validateArgs(os.Args[1:])
 	if err != nil {
 		log.Fatalf("Error while validating arguments: %v", err)
@@ -91,8 +101,8 @@ func main() {
 
 	// Prepare request handler
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", dumpHandler)
-	logMux := logHandler(mux)
+	mux.HandleFunc("/", dumpHandler(log))
+	logMux := logHandler(log, mux)
 
 	// Listen on specified ports
 	for _, port := range ports[1:] {

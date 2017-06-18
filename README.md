@@ -21,7 +21,7 @@ Prebuilt binaries of tagged versions are available on the [GitHub releases page]
 
 `httpecho` will bind to the IP address and ports specified, echoing incoming HTTP requests (including the request line and headers) as text. If you do not specify an IP address (or the first argument is an invalid IP, but a valid port number) it assumes `0.0.0.0` and listens on all interfaces.
 
-Incoming requests are also logged to the standard output in the following format:
+Incoming requests are also logged to the standard error output in the following format:
 
     2006/01/02 15:04:05 GET request from 192.168.0.2 on 192.168.0.1:8080
                         ^^^              ^^^^^^^^^^^    ^^^^^^^^^^^^^^^^
