@@ -13,7 +13,7 @@ It is useful for testing and debugging HTTP clients and reverse proxies, showing
 
     go get github.com/theag3nt/httpecho
 
-Prebuilt binaries will also be available from GitHub in the future.
+Prebuilt binaries of tagged versions are available on the [GitHub releases page](https://github.com/theag3nt/httpecho/releases).
 
 ## Usage
 
