@@ -205,10 +205,8 @@ func TestLogHandler(t *testing.T) {
 			// Prepare context to mimic behaviour of the real server
 			ctx := context.WithValue(context.Background(), http.LocalAddrContextKey, newAddr(tt.local))
 			// Prepare request
-			req, err := http.NewRequestWithContext(ctx, tt.method, "/", nil)
-			if err != nil {
-				t.Fatal(err)
-			}
+			req := httptest.NewRequest(tt.method, "/", nil)
+			req = req.WithContext(ctx)
 			if tt.host == "" {
 				req.Host = tt.local
 			} else {
