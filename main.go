@@ -79,7 +79,8 @@ func logHandler(log logger, h http.Handler) http.Handler {
 		if err != nil {
 			remote = r.RemoteAddr
 		}
-		local := r.Host
+		localaddr, _ := r.Context().Value(http.LocalAddrContextKey).(net.Addr)
+		local := localaddr.String()
 
 		log.Printf("%s request from %s on %s\n", method, remote, local)
 
