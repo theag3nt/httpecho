@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -37,6 +39,22 @@ func (l *bufferLogger) Println(args ...interface{}) {
 
 func (l *bufferLogger) String() string {
 	return l.b.String()
+}
+
+type addr struct {
+	value string
+}
+
+func newAddr(value string) net.Addr {
+	return addr{value}
+}
+
+func (a addr) String() string {
+	return a.value
+}
+
+func (a addr) Network() string {
+	return "tcp"
 }
 
 func TestValidateArgs(t *testing.T) {
@@ -166,10 +184,11 @@ func TestLogHandler(t *testing.T) {
 		method string
 		remote string
 		local  string
+		host   string
 	}{
-		{"Get", "GET", "127.0.0.1", "127.0.0.1:1234"},
-		{"Post", "POST", "192.168.0.2", "192.168.0.1:1234"},
-		{"Head", "HEAD", "127.0.0.1", "localhost:1234"},
+		{"LoopbackHost", "GET", "127.0.0.1", "127.0.0.1:1234", ""},
+		{"PrivateHost", "POST", "192.168.0.2", "192.168.0.1:1234", ""},
+		{"DomainHost", "HEAD", "127.0.0.1", "127.0.0.1:1234", "localhost:1234"},
 	}
 
 	// Prepare expected results
@@ -183,12 +202,16 @@ func TestLogHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			wantOutput := fmt.Sprintf("%s request from %s on %s\n", tt.method, tt.remote, tt.local)
 
+			// Prepare context to mimic behaviour of the real server
+			ctx := context.WithValue(context.Background(), http.LocalAddrContextKey, newAddr(tt.local))
 			// Prepare request
-			req, err := http.NewRequest(tt.method, "/", nil)
-			if err != nil {
-				t.Fatal(err)
+			req := httptest.NewRequest(tt.method, "/", nil)
+			req = req.WithContext(ctx)
+			if tt.host == "" {
+				req.Host = tt.local
+			} else {
+				req.Host = tt.host
 			}
-			req.Host = tt.local
 			req.RemoteAddr = tt.remote
 
 			// Send request to handler
