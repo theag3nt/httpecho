@@ -1,0 +1,41 @@
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: [ '~1.15', '~1.16', '~1.17' ]
+      fail-fast: false
+    name: Go ${{ matrix.go }} build
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Environment
+        run: |
+          go version
+          go env
+      - name: Build
+        run: go build -v ./...
+      - name: Test
+        run: go test -race -v ./...
+
+  lint:
+    runs-on: ubuntu-latest
+    name: Lint
+    steps:
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: latest
