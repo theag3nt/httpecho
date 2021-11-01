@@ -2,7 +2,7 @@
 
 `httpecho` is a simple tool which echoes incoming HTTP requests back to its clients.
 
-[![Build Status](https://travis-ci.org/theag3nt/httpecho.svg?branch=master)](https://travis-ci.org/theag3nt/httpecho)
+[![Build Status](https://github.com/theag3nt/httpecho/actions/workflows/go.yml/badge.svg)](https://github.com/theag3nt/httpecho/actions/workflows/go.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/theag3nt/httpecho)](https://goreportcard.com/report/github.com/theag3nt/httpecho)
 
 It is useful for testing and debugging HTTP clients and reverse proxies, showing the exact request which arrives to the endpoint. It is inspired by [httpbin](https://github.com/kennethreitz/httpbin) but it is much simpler, and it was created with the intention to be easily runnable on multiple ports at the same time.
